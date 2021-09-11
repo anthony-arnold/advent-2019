@@ -16,7 +16,7 @@ c     Part two
 
       subroutine fire(prog, seq)
         external sig_in, sig_out
-        integer prog(10000), amp(10000,5), seq(5), ip(5)
+        integer prog(10000), amp(10000,5), seq(5), ip(2,5)
         integer params, i, j, thrust, started, halted
         logical final
 
@@ -27,7 +27,7 @@ c     Part two
         started = 0
         halted = 0
         do i = 1,5
-           ip(i) = 1
+           ip(1,i) = 1
         end do
 
  3      continue
@@ -40,7 +40,7 @@ c     Part two
               end do
               started = started + 1
            end if
-           call intcode_preempt(amp(1,i), sig_in, sig_out, ip(i), *5)
+           call intcode_preempt(amp(1,i), sig_in, sig_out, ip(1,i), *5)
 c     Halted
            halted = halted + 1
            if (halted.eq.5) go to 7
