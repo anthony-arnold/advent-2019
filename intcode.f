@@ -74,24 +74,28 @@ c     Position mode
       return
       end
 
-      subroutine ic_op_inp(mem, ip, input)
+      subroutine ic_op_inp(mem, ip, input, *)
         integer mem(*), ip, dst
         external input
 
         dst = ic_param(mem, ip, 1)
-        call input(mem(dst + 1))
         ip = ip + 2
-      return
+        call input(mem(dst + 1), *66)
+
+        return
+ 66     return 1
       end
 
-      subroutine ic_op_out(mem, ip, modes, output)
+      subroutine ic_op_out(mem, ip, modes, output, *)
         external output
         integer mem(*), ip, modes, val
 
         val = ic_mode_param(mem, ip, modes, 1)
-        call output(val)
         ip = ip + 2
-      return
+        call output(val, *77)
+
+        return
+ 77     return 1
       end
 
       subroutine ic_op_jzn(mem, ip, modes)
@@ -120,12 +124,17 @@ c     Position mode
       return
       end
 
-
       subroutine intcode(mem, input, output)
         external input, output
-        integer mem(*), ip, instruction, op, modes
-
+        integer ip, mem(*)
         ip = 1
+        call intcode_preempt(mem, input, output, ip, *88)
+ 88     return
+      end
+
+      subroutine intcode_preempt(mem, input, output, ip, *)
+        external input, output
+        integer mem(*), ip, instruction, op, modes
 
  1      instruction = mem(ip)
         op = MOD(instruction, 100)
@@ -139,10 +148,10 @@ c     Position mode
            call ic_op_mul(mem, ip, modes)
 
         else if (op.eq.3) then
-           call ic_op_inp(mem, ip, input)
+           call ic_op_inp(mem, ip, input, *98)
 
         else if (op.eq.4) then
-           call ic_op_out(mem, ip, modes, output)
+           call ic_op_out(mem, ip, modes, output, *98)
 
         else if (op.eq.5) then
            call ic_op_jzn(mem, ip, modes)
@@ -160,4 +169,5 @@ c     Position mode
         go to 1
 
  99     return
+ 98     return 1
       end
