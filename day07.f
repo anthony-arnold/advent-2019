@@ -1,5 +1,6 @@
       program day07
-        integer prog(10000), params, i, seq(5)
+        integer*8 prog(10000)
+        integer params, i, seq(5)
         data seq/0,1,2,3,4/
 
         read(*,*, end=2) prog
@@ -16,8 +17,8 @@ c     Part two
 
       subroutine fire(prog, seq)
         external sig_in, sig_out
-        integer prog(10000), amp(10000,5), seq(5), ip(2,5)
-        integer params, i, j, thrust, started, halted
+        integer*8 prog(10000), amp(10000,5), ip(2,5)
+        integer params, i, j, thrust, started, halted, seq(5)
         logical final
 
         common/input/ params(2)
@@ -40,7 +41,7 @@ c     Part two
               end do
               started = started + 1
            end if
-           call intcode_preempt(amp(1,i), sig_in, sig_out, ip(1,i), *5)
+           call intcode_yield(amp(1,i), sig_in, sig_out, ip(1,i), *5)
 c     Halted
            halted = halted + 1
            if (halted.eq.5) go to 7
@@ -57,7 +58,8 @@ c     Pre-empted
       end
 
       subroutine sig_in(dst)
-        integer dst, params
+        integer*8 dst
+        integer params
         logical  ir
         common/input/ params(2)
 
@@ -68,11 +70,14 @@ c     Pre-empted
       end
 
       subroutine sig_out(val, *)
-        integer val, params
+        integer*8 val
+        integer params
         logical ir
         common/input/ params(2)
 
         params(1) = val
+
+c       Always yield after output
         return 1
       end
 

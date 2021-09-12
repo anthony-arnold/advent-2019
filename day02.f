@@ -1,10 +1,11 @@
 
       program day02
-         integer n(255), m(255), i
+         integer n(255), i
+         integer*8 m(255)
          integer noun, verb
          data noun/0/, verb/0/
 
-         read(*,*,END=2) n        
+         read(*,*,END=2) n
 2        continue
 
 3        do i = 1,255
@@ -30,4 +31,4 @@ c Write part one solution
 
          write(*,*) 100 * noun + verb
       stop
-      end 
+      end

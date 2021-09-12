@@ -1,13 +1,13 @@
       subroutine day05_input(dst)
          integer i
          common/input/ i
-         integer dst
+         integer*8 dst
          dst = i
          return
       end
 
       subroutine day05_output(val)
-        integer val
+        integer*8 val
         write(*,*) val
       return
       end
@@ -16,7 +16,7 @@
          integer i
          common/input/ i
          external day05_input, day05_output
-         integer mem(1000), mem2(1000), n
+         integer*8 mem(1000), mem2(1000), n
 
         read(*,*,end=1) mem
 

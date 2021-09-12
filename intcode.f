@@ -1,64 +1,63 @@
 c
 c     The IntCode machine
 c
+      subroutine ic_param(mem, ip, modes, idx, dst)
+        integer*8 mem(*), ip(2), modes, mode, dst
+        integer idx
 
-      integer function ic_param(mem, ip, idx)
-        integer mem(*), ip(2), idx
-
-c     Get immediate value
-        ic_param = mem(ip(1) + idx)
-      return
-      end
-
-      integer function ic_mode_param(mem, ip, modes, idx)
-      integer mem(*), ip(2), modes, idx, mode
-      if (modes.eq.0) then
-         mode = 0
-      else
-         mode = MOD(modes / int(10**(idx - 1)), 10)
-      end if
-
-c     Get immediate value
-        ic_mode_param = ic_param(mem, ip, idx)
-
-        if (mode.eq.0) then
-c     Position mode
-           ic_mode_param = mem(ic_mode_param + 1)
-        else if (mode.eq.2) then
-c     Relative mode
-           ic_mode_param = mem(ic_mode_param + 1 + ip(2))
+        if (modes.eq.0) then
+           mode = 0
+        else
+           mode = MOD(modes / int(10**(idx - 1)), 10)
         end if
+
+        select case(mode)
+        case(1)
+c     Immediate mode
+           dst = ip(1) + idx
+        case(2)
+c     Relative mode
+           dst = ip(2) + mem(ip(1) + idx) + 1
+
+        case default
+c     Position mode
+           dst = mem(ip(1) + idx) + 1
+        end select
+
       return
       end
 
       subroutine ic_bin_params(mem, ip, modes, lhs, rhs, dst)
-        integer mem(*), ip(2), modes, lhs, rhs, dst
-        lhs = ic_mode_param(mem, ip, modes, 1)
-        rhs = ic_mode_param(mem, ip, modes, 2)
-        dst = ic_param(mem, ip, 3) + 1
-        ip(1) = ip(1) + 4
-        return
+         integer*8 ip(2), mem(*), lhs, rhs, dst, modes
+
+         call ic_param(mem, ip, modes, 1, lhs)
+         call ic_param(mem, ip, modes, 2, rhs)
+         call ic_param(mem, ip, modes, 3, dst)
+         ip(1) = ip(1) + 4
+         return
       end
 
       subroutine ic_op_add(mem, ip, modes)
-         integer mem(*), ip(2), modes, lhs, rhs, dst
+         integer*8 ip(2), mem(*), lhs, rhs, dst, modes
          call ic_bin_params(mem, ip, modes, lhs, rhs, dst)
-         mem(dst) = lhs + rhs
+         mem(dst) = mem(lhs) + mem(rhs)
         return
       end
 
       subroutine ic_op_mul(mem, ip, modes)
-         integer mem(*), ip(2), modes, lhs, rhs, dst
+         integer*8 ip(2), mem(*), lhs, rhs, dst, modes
          call ic_bin_params(mem, ip, modes, lhs, rhs, dst)
-         mem(dst) = lhs * rhs
+         mem(dst) = mem(lhs) * mem(rhs)
         return
       return
       end
 
       subroutine ic_op_lt(mem, ip, modes)
-         integer mem(*), ip(2), modes, lhs, rhs, dst
+         integer*8 ip(2), mem(*), lhs, rhs, dst, modes
+
          call ic_bin_params(mem, ip, modes, lhs, rhs, dst)
-         if (lhs.lt.rhs) then
+
+         if (mem(lhs).lt.mem(rhs)) then
             mem(dst) = 1
          else
             mem(dst) = 0
@@ -67,9 +66,10 @@ c     Relative mode
       end
 
       subroutine ic_op_eq(mem, ip, modes)
-         integer mem(*), ip(2), modes, lhs, rhs, dst
+         integer*8 ip(2), mem(*), lhs, rhs, dst, modes
          call ic_bin_params(mem, ip, modes, lhs, rhs, dst)
-         if (lhs.eq.rhs) then
+
+         if (mem(lhs).eq.mem(rhs)) then
             mem(dst) = 1
          else
             mem(dst) = 0
@@ -77,112 +77,124 @@ c     Relative mode
       return
       end
 
-      subroutine ic_op_inp(mem, ip, input, *)
-        integer mem(*), ip(2), dst
+      subroutine ic_op_inp(mem, ip, modes, input, *)
+        integer*8 ip(2), mem(*), dst, modes
         external input
 
-        dst = ic_param(mem, ip, 1)
+        call ic_param(mem, ip, modes, 1, dst)
         ip(1) = ip(1) + 2
-        call input(mem(dst + 1), *66)
+        call input(mem(dst), *66)
 
         return
  66     return 1
       end
 
       subroutine ic_op_out(mem, ip, modes, output, *)
-        external output
-        integer mem(*), ip(2), modes, val
+         external output
+         integer*8 ip(2), mem(*), val, modes
 
-        val = ic_mode_param(mem, ip, modes, 1)
-        ip(1) = ip(1) + 2
-        call output(val, *77)
+         call ic_param(mem, ip, modes, 1, val)
+         ip(1) = ip(1) + 2
+         call output(mem(val), *77)
 
-        return
- 77     return 1
+         return
+ 77      return 1
       end
 
       subroutine ic_op_jzn(mem, ip, modes)
-        integer mem(*), ip(2), modes, val
-        val = ic_mode_param(mem, ip, modes, 1)
-        dst = ic_mode_param(mem, ip, modes, 2)
+         integer*8 ip(2), mem(*), val, modes, dst
 
-        if (val.ne.0) then
-           ip(1) = dst + 1
-        else
-           ip(1) = ip(1) + 3
-        end if
-      return
+         call ic_param(mem, ip, modes, 1, val)
+         call ic_param(mem, ip, modes, 2, dst)
+
+         if (mem(val).ne.0) then
+            ip(1) = mem(dst) + 1
+         else
+            ip(1) = ip(1) + 3
+         end if
+         return
       end
 
       subroutine ic_op_jze(mem, ip, modes)
-        integer mem(*), ip(2), modes, val
-        val = ic_mode_param(mem, ip, modes, 1)
-        dst = ic_mode_param(mem, ip, modes, 2)
+         integer*8 ip(2), mem(*), val, modes, dst
 
-        if (val.eq.0) then
-           ip(1) = dst + 1
-        else
-           ip(1) = ip(1) + 3
-        end if
-      return
+         call ic_param(mem, ip, modes, 1, val)
+         call ic_param(mem, ip, modes, 2, dst)
+
+         if (mem(val).eq.0) then
+            ip(1) = mem(dst) + 1
+         else
+            ip(1) = ip(1) + 3
+         end if
+         return
       end
 
       subroutine ic_op_adj(mem, ip, modes)
-        integer mem(*), ip(2), modes, val
-        val = ic_mode_param(mem, ip, modes, 1)
-        ip(1) = ip(1) + 2
-        ip(2) = ip(2) + val
-      return
+         integer*8 ip(2), mem(*), val, modes
+
+         call ic_param(mem, ip, modes, 1, val)
+
+         ip(1) = ip(1) + 2
+         ip(2) = ip(2) + mem(val)
+         return
       end
 
       subroutine intcode(mem, input, output)
-        external input, output
-        integer ip(2), mem(*)
-        ip(1) = 1
-        ip(2) = 0
+         external input, output
+         integer*8 ip(2), mem(*)
 
-        call intcode_preempt(mem, input, output, ip, *88)
- 88     return
+         ip(1) = 1
+         ip(2) = 0
+
+         call intcode_yield(mem, input, output, ip, *88)
+ 88      return
       end
 
-      subroutine intcode_preempt(mem, input, output, ip, *)
-        external input, output
-        integer mem(*), ip(*), instruction, op, modes
+      subroutine intcode_yield(mem, input, output, ip, *)
+         external input, output
+         integer*8 ip(2), mem(*), instruction, op, modes
 
- 1      instruction = mem(ip(1))
-        op = MOD(instruction, 100)
-        modes = instruction / 100
+ 1       instruction = mem(ip(1))
+         op = MOD(instruction, 100)
+         modes = instruction / 100
 
-        if (op.eq.99) go to 99
-        if (op.eq.1) then
-           call ic_op_add(mem, ip, modes)
+         select case (op)
+         case (1)
+            call ic_op_add(mem, ip, modes)
 
-        else if (op.eq.2) then
-           call ic_op_mul(mem, ip, modes)
+         case (2)
+            call ic_op_mul(mem, ip, modes)
 
-        else if (op.eq.3) then
-           call ic_op_inp(mem, ip, input, *98)
+         case(3)
+            call ic_op_inp(mem, ip, modes, input, *98)
 
-        else if (op.eq.4) then
-           call ic_op_out(mem, ip, modes, output, *98)
+         case(4)
+            call ic_op_out(mem, ip, modes, output, *98)
 
-        else if (op.eq.5) then
-           call ic_op_jzn(mem, ip, modes)
+         case(5)
+            call ic_op_jzn(mem, ip, modes)
 
-        else if (op.eq.6) then
-           call ic_op_jze(mem, ip, modes)
+         case(6)
+            call ic_op_jze(mem, ip, modes)
 
-        else if (op.eq.7) then
-           call ic_op_lt(mem, ip, modes)
+         case(7)
+            call ic_op_lt(mem, ip, modes)
 
-        else if (op.eq.8) then
-           call ic_op_eq(mem, ip, modes)
+         case(8)
+            call ic_op_eq(mem, ip, modes)
 
-        else if (op.eq.9) then
-           call ic_op_adj(mem, ip, modes)
+         case(9)
+            call ic_op_adj(mem, ip, modes)
 
-        end if
-        go to 1
+         case (99)
+            go to 99
+
+         case default
+            write(*,*) 'INVALID OPCODE', op
+            stop
+         end select
+
+         go to 1
 
  99     return
  98     return 1
