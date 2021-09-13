@@ -57,7 +57,7 @@ c     Pre-empted
       return
       end
 
-      subroutine sig_in(dst)
+      subroutine sig_in(dst, *)
         integer*8 dst
         integer params
         logical  ir

@@ -1,4 +1,4 @@
-      subroutine day05_input(dst)
+      subroutine day05_input(dst,*)
          integer i
          common/input/ i
          integer*8 dst
@@ -6,7 +6,7 @@
          return
       end
 
-      subroutine day05_output(val)
+      subroutine day05_output(val,*)
         integer*8 val
         write(*,*) val
       return

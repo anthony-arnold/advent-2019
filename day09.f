@@ -1,11 +1,11 @@
-      subroutine input(val)
+      subroutine input(val, *)
         common /part/ mode
         integer*8 val, mode
         val = mode
         return
       end
 
-      subroutine output(val)
+      subroutine output(val, *)
         integer*8 val
         write(*,*) val
         return
