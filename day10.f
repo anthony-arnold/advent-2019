@@ -1,24 +1,12 @@
 
-
-      integer function gcd(i, j)
-        integer i, j, a, b, c
-        a = i
-        b = j
-        do while (b .ne. 0)
-           c = b
-           b = mod(a, b)
-           a = c
-        end do
-        gcd = a
-        end
-
       subroutine remove(chart, i, j, di, dj)
         character chart(36,36)
-        integer i,j,di,dj, gcd, x, y, dx, dy, norm
+        integer i,j,di,dj, x, y, dx, dy, norm
 
         if (chart(i+di,j+dj).eq.'#') then
 c     Remove all occluded ones
-           norm = abs(gcd(di, dj))
+           call gcd(di, dj, norm)
+           norm = abs(norm)
            dx = di / norm
            dy = dj / norm
 

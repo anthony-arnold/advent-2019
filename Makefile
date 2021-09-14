@@ -1,13 +1,18 @@
 SRCS = $(wildcard day*.f)
 PROGS = $(patsubst %.f,%,$(SRCS))
 
+OBJECTS = intcode.o gcd.o lcm.o
+
 all: $(PROGS)
 
-intcode.o: intcode.f
+$(OBJECTS): %.o : %.f
 
-%: %.f intcode.o
-	$(FC) $(FFLAGS) -o $@ $< intcode.o
+libadvent.a: $(OBJECTS)
+	ar cr -o $@ $^
+
+%: %.f libadvent.a
+	$(FC) $(FFLAGS) -o $@ $^
 
 .PHONY: clean
 clean :
-	rm -f day?? *.o
+	rm -f day?? *.o *.a
