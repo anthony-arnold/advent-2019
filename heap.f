@@ -5,7 +5,7 @@
 
         n = n + 1
         j = n
-1       A(j) = i
+1       A(j) = i       
         if (j.eq.1) go to 2
         call c(A(j/2), i, x)
         if (.not. x) then
@@ -18,32 +18,34 @@
 
 
       subroutine heap_pop(A, n, i, c)
-        integer A(n), n, i, j, t
+        integer A(n), n, i, j, t, p
         logical x, y
         external c
 
         i = A(1)
         A(1) = A(n)
         n = n - 1
-        if (n.lt.2) go to 4
-3       call c(A(1), A(2), x)
-        if (n.gt.2) then
-            call c(A(1), A(3), y)
+        p = 1
+3       if (2*p.gt.n) go to 4
+        call c(A(p), A(2*p), x)
+        if (n.gt.2*p) then
+            call c(A(p), A(2*p+1), y)
         else
             y = .true.
         end if
-        if (.not. (x .and. y)) then
+        if (.not. x .or. .not. y) then
             if (.not. y) then
-                call c(A(2), A(3), x)
+                call c(A(2*p), A(2*p+1), y)
             end if
-            if (.not. x) then
-                j = 3
+            if (.not. y) then
+                j = 2 * p + 1
             else
-                j = 2
+                j = 2 * p
             end if
-            t = A(1)
-            A(1) = A(j)
+            t = A(p)
+            A(p) = A(j)
             A(j) = t
+            p = j
             go to 3
         end if
 4       return
