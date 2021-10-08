@@ -1,7 +1,7 @@
 SRCS = $(wildcard day*.f)
 PROGS = $(patsubst %.f,%,$(SRCS))
 
-OBJECTS = intcode.o gcd.o lcm.o
+OBJECTS = intcode.o gcd.o lcm.o heap.o
 
 all: $(PROGS)
 
