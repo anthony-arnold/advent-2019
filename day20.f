@@ -1,7 +1,7 @@
 
-      
 
-      function ischar(c) 
+
+      function ischar(c)
         character c
         integer i
         logical ischar
@@ -10,63 +10,113 @@
         return
       end
 
-      function enc(x, y) 
-        integer enc, x, y
+      function enc(x, y)
+        integer enc, x, y, i
         enc = y * 200 + x
         return
       end
 
       subroutine cmp_dst(a, b, r)
-        integer a, b
-        integer distance(40 000)
+        integer a, b, alvl, blvl, ad, bd
+        integer distance(1000, 40 000)
         logical r
         common /path/ distance
 
-        r = distance(a).le.distance(b)
+        alvl = mod(a, 1 000)
+        blvl = mod(b, 1 000)
+
+        ad = distance(alvl, a / 1000)
+        bd = distance(blvl, b / 1000)
+
+        r = ad.lt.bd
         return
       end
 
-      subroutine dijkstra(cnct, pos, n, src, dst)
-        integer cnct(5, 40 000), n, pos(n), src(2), dst(2)
-        integer A(40 000), b, d, i, j, k, s
-        logical V(40 000)
-        integer enc
+      subroutine dijkstra(cnct, pos, n, src, dst, kcase)
+        integer cnct(5, 40 000), n, pos(2, n), src(2), dst(2)
+        integer A(40 000), b, d, i, j, k, s, ir
+        logical V(1000, 40 000), Q(1000, 40 000)
+        integer enc, lvl, kcase, xmax(2), klvl
         external cmp_dst
-        integer distance(40 000)
+        integer distance(1000, 40 000), portal(40 000), alt
         common /path/ distance
         b = 0
 
         do 50 i = 1,n
-            distance(pos(i)) = 1 000 000
-            V(pos(i)) = .false.
+            do 51 j = 1,1000
+               distance(j, pos(1, i)) = 1 000 000
+               V(j, pos(1, i)) = .false.
+               Q(j, pos(1, i)) = .false.
+ 51         continue
+            portal(pos(1, i)) = pos(2, i)
 50      continue
         s = enc(src(1), src(2))
-        d = enc(dst(1), dst(2))
+        d = enc(dst(1), dst(2)) * 1000 + 1
 
-        distance(s) = 0
-        call heap_push(A, b, s, cmp_dst)
+        distance(1, s) = 0
+        call heap_push(A, b, s*1000+1, cmp_dst)
 
-        do 56 while(b.gt.0) 
+        do 56 while(b.gt.0)
             call heap_pop(A, b, i, cmp_dst)
             if (d .eq. i) go to 60
 
-            V(i) = .true.
-            do 57 j = 1, cnct(1, i)
-                k = cnct(j+1, i)
-                distance(k) = min(distance(k), distance(i) + 1)
-                if (.not.V(k)) then
-                    call heap_push(A, b, k, cmp_dst)
+            ir = i / 1000
+            lvl = mod(i, 1 000)
+
+            if (V(lvl, ir)) go to 56
+            V(lvl, ir) = .true.
+
+            do 57 j = 1, cnct(1, ir)
+                k = cnct(j+1, ir)
+
+c     Decide next level
+                klvl = lvl
+                if (kcase .eq. 2) then
+                   if (portal(ir).eq.1 .and. portal(k).eq.2) then
+c     From outer to inner portal
+                      klvl = lvl - 1
+                   else if (portal(ir).eq.2. .and. portal(k).eq.1) then
+c     From inner to outer potal
+                      klvl = lvl + 1
+                   end if
+
+c     Outer portals not valid on first level
+                   if (klvl.eq.0) go to 57
+                end if
+
+                alt = distance(lvl, ir) + 1
+                if (distance(klvl, k).gt.alt) then
+                   distance(klvl,k) = alt
+
+                   if (.not.Q(klvl, k)) then
+                      call heap_push(A, b, k*1000+klvl, cmp_dst)
+                   else
+c     in place of "decrease priority"
+                      call reheap(A, b, cmp_dst)
+                   end if
+                   Q(klvl, k) = .true.
                 end if
 57          continue
 56      continue
-60      write(*,*) distance(d)
+60      write(*,*) distance(1, d/1000)
+        return
+      end
+
+      subroutine reheap(A, n, c)
+        integer A(n), B(n), n, m, i
+        external c
+        m = 0
+        do 1 i = 1, n
+           call heap_push(B, m, A(i), c)
+ 1      continue
+        A = B
         return
       end
 
       program day20
         integer cnct(5, 40 000), w, x, y, z, n, i, j, k
-        integer prtls(2, 100), nprtls, enc
-        integer src(2), dst(2), pos(40 000), npos
+        integer prtls(2, 100), nprtls, enc, xmax(2)
+        integer src(2), dst(2), pos(2, 40 000), npos
         character*200 lines(200)
         character c, d
         logical ischar
@@ -110,14 +160,18 @@ c   Find all portals
                         c = d
                         d = lines(y)(x:x)
                     end if
-                    
+
                     if (c.eq.'A' .and. d.eq.'A') then
                         src(1) = i
                         src(2) = j
+                        go to 14
                     else if (c.eq.'Z' .and. d.eq.'Z') then
                         dst(1) = i
                         dst(2) = j
+                        go to 14
                     end if
+                    xmax(1) = max(xmax(1), i)
+                    xmax(2) = max(xmax(2), j)
 
                     nprtls = nprtls + 1
                     prtls(1, nprtls) = enc(i, j)
@@ -133,7 +187,8 @@ c   Find all edges
                 c = lines(y)(x:x)
                 if (c.eq.'.') then
                     npos = npos + 1
-                    pos(npos) = enc(x, y)
+                    pos(1, npos) = enc(x, y)
+                    pos(2, npos) = 0
 
                     k = 0
                     if (lines(y-1)(x:x).eq.'.') then
@@ -154,8 +209,16 @@ c   Find all edges
                     end if
 
                     do 50 z = 1, nprtls
-                        if (prtls(1, z).eq.enc(x, y)) then
-                            
+                       if (prtls(1, z).eq.enc(x, y)) then
+                            if (x.eq.3 .or. y.eq.3 .or.
+     &                          x.eq.xmax(1) .or. y.eq.xmax(2)) then
+c     Outer portal
+                              pos(2, npos) = 1
+                            else
+c     Inner portal
+                              pos(2, npos) = 2
+                            end if
+
                             do 51 w = 1, nprtls
                                 if (z.ne.w .and.
      &                              prtls(2,z).eq.prtls(2,w)) then
@@ -170,6 +233,7 @@ c   Find all edges
 5           continue
 6       continue
 
-        call dijkstra(cnct, pos, npos, src, dst)
+        call dijkstra(cnct, pos, npos, src, dst, 1)
+        call dijkstra(cnct, pos, npos, src, dst, 2)
         stop
       end
