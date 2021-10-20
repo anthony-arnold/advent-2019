@@ -1,49 +1,53 @@
       program day22
-        integer p, modulo
-        parameter(p=10007)
-
+        integer*8 p, phi, modulo, modexp
         character*4 command
-        integer val, ptr, dir, i, j
-        integer deck(p), swap(p)
-        do 3 ptr = 1, p
-           deck(ptr) = ptr - 1
- 3      continue
+        integer*8 val, x, v, i
 
-        ptr = 0
-        dir = 1
+        p = 10007
+        phi = 10006
+
+        x = 0
+        v = 1
 
  1      read(*,*,end=2) command, val
         if (command .eq. 'cut') then
-           ptr = modulo(ptr + dir * val, p)
+           x = modulo(x + v*val, p)
         else if (command .eq. 'new') then
-           dir = dir * (-1)
-           ptr = modulo(ptr + dir, p)
+           v = p - v
+           x = modulo(x + v, p)
         else if (command .eq. 'incr') then
-           j = 0
-           do 4 i = 1,p
-              swap(j+1) = deck(ptr+1)
-              j = modulo(j + val, p)
-              ptr = modulo(ptr + dir, p)
- 4         continue
-           deck = swap
-           ptr = 0
-           dir = 1
+           v = modulo(v * modexp(val, phi-1, p), p)
         end if
         go to 1
 
+
  2      i = 0
-        do 5 while(deck(ptr + 1).ne.2019)
+        do 5 while(x.ne.2019)
            i = i + 1
-           ptr = modulo(ptr + dir, p)
+           x = modulo(x + v, p)
  5      continue
         write(*,*) i
       end
 
-      integer function modulo(a, b)
-        integer a, b
+      integer*8 function modulo(a, b)
+        integer*8 a, b
         modulo = mod(a, b)
         if (modulo.lt.0) then
            modulo = modulo + b
         end if
+        return
+      end
+
+      integer*8 function modexp(b, e, m)
+        integer*8 b, e, m
+        integer*8 c, eprime
+
+        c = 1
+        eprime = 0
+
+ 2      eprime = eprime + 1
+        c = mod(b * c, m)
+        if (eprime.lt.e) go to 2
+        modexp = c
         return
       end
