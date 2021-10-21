@@ -17,7 +17,7 @@ c     Part one
         code(5) = 'OR T J'
         code(6) = 'AND D J'
         code(7) = 'WALK'
-        call compile(code, 11, prog)
+        call compile(code, 7, prog)
 
         cp = 0
         pp = 1
