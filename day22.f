@@ -1,8 +1,8 @@
 c     Do the shuffling using as little memory as possible.
       program day22
-        integer*8 p(2), modulo, inverse
+        integer*8 p(2), modulo, inverse, modexp
         character*4 command
-        integer*8 val, x(2), v(2), i, r
+        integer*8 val, x(2), v(2), i, r, n, d
         data x/2*0/, v/2*1/
 
         p(1) = 10007
@@ -37,9 +37,24 @@ c     Part one - find the index of 2019
         write(*,*) i
 
 c     Part two - find the 2020th value after a whole lotta iterations
+c     x = geometric sum of x*v^r
+        n = modexp(v(2), r, p(2))
+        n = modulo(1 - n, p(2))
+        d = modulo(1 - v(2), p(2))
+        d = inverse(d, p(2))
+        x(2) = modulo(x(2) * n, p(2))
+        x(2) = modulo(x(2) * d, p(2))
 
+c     v = v^r
+        v(2) = modexp(v(2), r, p(2))
+
+c     Get the 2020th card
+        v(2) = modulo(2020 * v(2), p(2))
+        x(2) = modulo(x(2) + v(2), p(2))
+        write(*,*) x(2)
       end
 
+c     A version of mod that handles negatives correctly
       integer*8 function modulo(a, b)
         integer*8 a, b
         modulo = mod(a, b)
@@ -49,6 +64,24 @@ c     Part two - find the 2020th value after a whole lotta iterations
         return
       end
 
+c     b^e mod m by repeated squaring
+      integer*8 function modexp(b, e, m)
+        integer*8 b, e, m
+        integer*16 c, x
+        c = mod(b, m)
+        x = e
+        modexp = 1
+        do 1 while(x.gt.0)
+           if (mod(x, 2).eq.1) then
+              modexp = mod(modexp * c, m)
+           end if
+           c = mod(c * c, m)
+           x = x / 2
+ 1      continue
+        return
+      end
+
+c     Get the modular inverse (1 / a mod m)
       integer*8 function inverse(a, m)
         integer*8 a, m, q, p
         integer*8 t0, t1, r0, r1
