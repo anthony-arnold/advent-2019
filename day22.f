@@ -1,57 +1,74 @@
 c     Do the shuffling using as little memory as possible.
       program day22
-        integer*8 p(2), modulo, inverse, modexp
+        integer*8 p(2), modulo, inverse, mult
         character*4 command
-        integer*8 val, x(2), v(2), i, r, n, d
+        integer*8 val, x(2), v(2), i, j, r, n, d
         data x/2*0/, v/2*1/
 
         p(1) = 10007
         p(2) = 1193157*10**8 + 17514047
         r = 1017415*10**8 + 82076661
 
-
  1      read(*,*,end=2) command, val
+        do 3 j = 1,2
         if (command .eq. 'cut') then
-           x(1) = modulo(x(1) + v(1) * val, p(1))
-           x(2) = modulo(x(2) + v(2) * val, p(2))
+           x(j) = modulo(x(j) + v(j) * val, p(j))
 
         else if (command .eq. 'new') then
-           v(1) = p(1) - v(1)
-           v(2) = p(2) - v(2)
-
-           x(1) = modulo(x(1) + v(1), p(1))
-           x(2) = modulo(x(2) + v(2), p(2))
+           v(j) = p(j) - v(j)
+           x(j) = modulo(x(j) + v(j), p(j))
         else if (command .eq. 'incr') then
-           v(1) = modulo(v(1) * inverse(val, p(1)), p(1))
-           v(2) = modulo(v(2) * inverse(val, p(2)), p(2))
+           v(j) = mult(v(j), inverse(val, p(j)), p(j))
         end if
+ 3      continue
         go to 1
 
-
 c     Part one - find the index of 2019
- 2      i = 0
-        do 5 while(x(1).ne.2019)
-           i = i + 1
-           x(1) = modulo(x(1) + v(1), p(1))
- 5      continue
-        write(*,*) i
+ 2      v(1) = inverse(v(1), p(1))
+        x(1) = mult(-x(1), v(1), p(1))
+        n = modulo(2019 * v(1) + x(1), p(1))
+        write(*,*) n
 
-c     Part two - find the 2020th value after a whole lotta iterations
-c     x = geometric sum of x*v^r
-        n = modexp(v(2), r, p(2))
-        n = modulo(1 - n, p(2))
-        d = modulo(1 - v(2), p(2))
-        d = inverse(d, p(2))
-        x(2) = modulo(x(2) * n, p(2))
-        x(2) = modulo(x(2) * d, p(2))
+c     Part two - find the 2020th value after many iterations
+        n = 2020
+        call geom(x(2), v(2), r, p(2))
+        d = mult(v(2), n, p(2))
+        d = modulo(x(2) + d, p(2))
+        write(*,*) d
+      end
 
-c     v = v^r
-        v(2) = modexp(v(2), r, p(2))
+      subroutine geom(x, v, r, p)
+        integer*8 x, v, r, p, a, b, mult, inverse, modexp
 
-c     Get the 2020th card
-        v(2) = modulo(2020 * v(2), p(2))
-        x(2) = modulo(x(2) + v(2), p(2))
-        write(*,*) x(2)
+        a = modexp(v, r, p)
+        b = modulo(a-1, p)
+        b = mult(b, x, p)
+        b = mult(b, inverse(v-1, p), p)
+
+        x = b
+        v = a
+        return
+      end
+
+c     a*b mod p by repeated addition
+      integer*8 function mult(a, b, p)
+        integer*8 a, b, p, x, y, m
+        m = 0
+        x = a
+        y = b
+        do 1 while(y.ne.0)
+           if (mod(y, 2).eq.1) then
+              m = mod(m + x, p)
+           end if
+           y = y / 2
+           if (x.lt.p-x) then
+              x = x * 2
+           else
+              x = x - (p - x)
+           end if
+ 1      continue
+        mult = m
+        return
       end
 
 c     A version of mod that handles negatives correctly
@@ -67,17 +84,18 @@ c     A version of mod that handles negatives correctly
 c     b^e mod m by repeated squaring
       integer*8 function modexp(b, e, m)
         integer*8 b, e, m
-        integer*16 c, x
+        integer*8 c, x, mult, g
         c = mod(b, m)
         x = e
-        modexp = 1
+        g = 1
         do 1 while(x.gt.0)
            if (mod(x, 2).eq.1) then
-              modexp = mod(modexp * c, m)
+              g = mult(g, c, m)
            end if
-           c = mod(c * c, m)
+           c = mult(c, c, m)
            x = x / 2
  1      continue
+        modexp = g
         return
       end
 
