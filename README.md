@@ -23,3 +23,4 @@ Some problems have input which are not easily digestible by fortran, so an awk s
 
  - Day 4: Substitute a space `' '` for the dash `'-'` in the input.
  - Day 18: This program only outputs one answer. Modify the output manually for part 2.
+ - Day 25: Usage  is `./day25 day25.txt`. Play the game with standard input.
